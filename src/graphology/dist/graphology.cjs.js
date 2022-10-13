@@ -179,16 +179,6 @@ function getMatchingEdge(graph, source, target, type) {
   return edge;
 }
 /**
- * Checks whether the given value is a Graph implementation instance.
- *
- * @param  {mixed}   value - Target value.
- * @return {boolean}
- */
-
-function isGraph(value) {
-  return value !== null && _typeof(value) === 'object' && typeof value.addUndirectedEdgeWithKey === 'function' && typeof value.dropNode === 'function';
-}
-/**
  * Checks whether the given value is a plain object.
  *
  * @param  {mixed}   value - Target value.
@@ -2872,19 +2862,20 @@ function serializeNode(key, data) {
 /**
  * Formats internal edge data into a serialized edge.
  *
+ * @param  {string} type - The graph's type.
  * @param  {any}    key  - The edge's key.
  * @param  {object} data - Internal edge's data.
  * @return {array}       - The serialized edge.
  */
 
-function serializeEdge(key, data) {
+function serializeEdge(type, key, data) {
   var serialized = {
     key: key,
     source: data.source.key,
     target: data.target.key
   };
   if (!isEmpty(data.attributes)) serialized.attributes = assign({}, data.attributes);
-  if (data.undirected) serialized.undirected = true;
+  if (type === 'mixed' && data.undirected) serialized.undirected = true;
   return serialized;
 }
 /**
@@ -5030,6 +5021,8 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
   ;
 
   _proto["export"] = function _export() {
+    var _this2 = this;
+
     var nodes = new Array(this._nodes.size);
     var i = 0;
 
@@ -5041,7 +5034,7 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
     i = 0;
 
     this._edges.forEach(function (data, key) {
-      edges[i++] = serializeEdge(key, data);
+      edges[i++] = serializeEdge(_this2.type, key, data);
     });
 
     return {
@@ -5065,22 +5058,22 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
   ;
 
   _proto["import"] = function _import(data) {
-    var _this2 = this;
+    var _this3 = this;
 
     var merge = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
     // Importing a Graph instance directly
-    if (isGraph(data)) {
+    if (data instanceof Graph) {
       // Nodes
       data.forEachNode(function (n, a) {
-        if (merge) _this2.mergeNode(n, a);else _this2.addNode(n, a);
+        if (merge) _this3.mergeNode(n, a);else _this3.addNode(n, a);
       }); // Edges
 
       data.forEachEdge(function (e, a, s, t, _sa, _ta, u) {
         if (merge) {
-          if (u) _this2.mergeUndirectedEdgeWithKey(e, s, t, a);else _this2.mergeDirectedEdgeWithKey(e, s, t, a);
+          if (u) _this3.mergeUndirectedEdgeWithKey(e, s, t, a);else _this3.mergeDirectedEdgeWithKey(e, s, t, a);
         } else {
-          if (u) _this2.addUndirectedEdgeWithKey(e, s, t, a);else _this2.addDirectedEdgeWithKey(e, s, t, a);
+          if (u) _this3.addUndirectedEdgeWithKey(e, s, t, a);else _this3.addDirectedEdgeWithKey(e, s, t, a);
         }
       });
       return this;
@@ -5113,6 +5106,12 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
     }
 
     if (data.edges) {
+      var undirectedByDefault = false;
+
+      if (this.type === 'undirected') {
+        undirectedByDefault = true;
+      }
+
       list = data.edges;
       if (!Array.isArray(list)) throw new InvalidArgumentsGraphError('Graph.import: invalid edges. Expecting an array.');
 
@@ -5126,7 +5125,7 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
             target = _edge.target,
             _attributes = _edge.attributes,
             _edge$undirected = _edge.undirected,
-            undirected = _edge$undirected === void 0 ? false : _edge$undirected;
+            undirected = _edge$undirected === void 0 ? undirectedByDefault : _edge$undirected;
         var method = void 0;
 
         if ('key' in edge) {
@@ -5240,7 +5239,7 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
   ;
 
   _proto.inspect = function inspect() {
-    var _this3 = this;
+    var _this4 = this;
 
     var nodes = {};
 
@@ -5268,7 +5267,7 @@ var Graph = /*#__PURE__*/function (_EventEmitter) {
 
       if (!key.startsWith('geid_')) {
         label += "[".concat(key, "]: ");
-      } else if (_this3.multi) {
+      } else if (_this4.multi) {
         if (typeof multiIndex[desc] === 'undefined') {
           multiIndex[desc] = 0;
         } else {

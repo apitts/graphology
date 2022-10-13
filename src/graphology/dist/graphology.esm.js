@@ -65,21 +65,6 @@ function getMatchingEdge(graph, source, target, type) {
 }
 
 /**
- * Checks whether the given value is a Graph implementation instance.
- *
- * @param  {mixed}   value - Target value.
- * @return {boolean}
- */
-function isGraph(value) {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof value.addUndirectedEdgeWithKey === 'function' &&
-    typeof value.dropNode === 'function'
-  );
-}
-
-/**
  * Checks whether the given value is a plain object.
  *
  * @param  {mixed}   value - Target value.
@@ -3475,11 +3460,12 @@ function serializeNode(key, data) {
 /**
  * Formats internal edge data into a serialized edge.
  *
+ * @param  {string} type - The graph's type.
  * @param  {any}    key  - The edge's key.
  * @param  {object} data - Internal edge's data.
  * @return {array}       - The serialized edge.
  */
-function serializeEdge(key, data) {
+function serializeEdge(type, key, data) {
   const serialized = {
     key,
     source: data.source.key,
@@ -3489,7 +3475,7 @@ function serializeEdge(key, data) {
   if (!isEmpty(data.attributes))
     serialized.attributes = assign({}, data.attributes);
 
-  if (data.undirected) serialized.undirected = true;
+  if (type === 'mixed' && data.undirected) serialized.undirected = true;
 
   return serialized;
 }
@@ -6127,7 +6113,7 @@ class Graph extends EventEmitter {
     i = 0;
 
     this._edges.forEach((data, key) => {
-      edges[i++] = serializeEdge(key, data);
+      edges[i++] = serializeEdge(this.type, key, data);
     });
 
     return {
@@ -6151,7 +6137,7 @@ class Graph extends EventEmitter {
    */
   import(data, merge = false) {
     // Importing a Graph instance directly
-    if (isGraph(data)) {
+    if (data instanceof Graph) {
       // Nodes
       data.forEachNode((n, a) => {
         if (merge) this.mergeNode(n, a);
@@ -6213,6 +6199,12 @@ class Graph extends EventEmitter {
     }
 
     if (data.edges) {
+      let undirectedByDefault = false;
+
+      if (this.type === 'undirected') {
+        undirectedByDefault = true;
+      }
+
       list = data.edges;
 
       if (!Array.isArray(list))
@@ -6227,7 +6219,12 @@ class Graph extends EventEmitter {
         validateSerializedEdge(edge);
 
         // Adding the edge
-        const {source, target, attributes, undirected = false} = edge;
+        const {
+          source,
+          target,
+          attributes,
+          undirected = undirectedByDefault
+        } = edge;
 
         let method;
 
