@@ -524,8 +524,8 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
             NodeMatrix[n1 + NODE_DX] += xDist * factor;
             NodeMatrix[n1 + NODE_DY] += yDist * factor;
 
-            NodeMatrix[n2 + NODE_DX] += xDist * factor;
-            NodeMatrix[n2 + NODE_DY] += yDist * factor;
+            NodeMatrix[n2 + NODE_DX] -= xDist * factor;
+            NodeMatrix[n2 + NODE_DY] -= yDist * factor;
           } else if (distance < 0) {
             factor =
               100 *
@@ -701,13 +701,6 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
             Math.pow(NodeMatrix[n + NODE_DY], 2)
         );
 
-        if (force > MAX_FORCE) {
-          NodeMatrix[n + NODE_DX] =
-            (NodeMatrix[n + NODE_DX] * MAX_FORCE) / force;
-          NodeMatrix[n + NODE_DY] =
-            (NodeMatrix[n + NODE_DY] * MAX_FORCE) / force;
-        }
-
         swinging =
           NodeMatrix[n + NODE_MASS] *
           Math.sqrt(
@@ -726,6 +719,10 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
           ) / 2;
 
         nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging));
+
+        if(nodespeed > (MAX_FORCE * options.slowDown / force)) {
+          nodespeed = MAX_FORCE * options.slowDown / force;
+        }
 
         // Updating node's positon
         newX =
