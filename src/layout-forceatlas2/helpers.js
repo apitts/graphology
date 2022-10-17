@@ -185,11 +185,12 @@ exports.assignLayoutChanges = function (graph, NodeMatrix, outputReducer) {
   var i = 0;
 
   graph.updateEachNodeAttributes(function (node, attr) {
-    attr.x = NodeMatrix[i];
-    attr.y = NodeMatrix[i + 1];
+    if(!attr.hidden) {
+      attr.x = NodeMatrix[i];
+      attr.y = NodeMatrix[i + 1];
 
-    i += PPN;
-
+      i += PPN;
+    }
     return outputReducer ? outputReducer(node, attr) : attr;
   });
 };
@@ -204,10 +205,12 @@ exports.readGraphPositions = function (graph, NodeMatrix) {
   var i = 0;
 
   graph.forEachNode(function (node, attr) {
-    NodeMatrix[i] = attr.x;
-    NodeMatrix[i + 1] = attr.y;
-
-    i += PPN;
+    if(!attr.hidden) {
+      NodeMatrix[i] = attr.x;
+      NodeMatrix[i + 1] = attr.y;
+  
+      i += PPN;
+    }
   });
 };
 
@@ -220,7 +223,7 @@ exports.readGraphPositions = function (graph, NodeMatrix) {
  * @return {object}                      - Map to node positions.
  */
 exports.collectLayoutChanges = function (graph, NodeMatrix, outputReducer) {
-  var nodes = graph.nodes(),
+  var nodes = graph.filterNodes((node, attr) => !attr.hidden),
     positions = {};
 
   for (var i = 0, j = 0, l = NodeMatrix.length; i < l; i += PPN) {
