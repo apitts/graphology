@@ -30,7 +30,9 @@ function FA2LayoutSupervisor(graph, params) {
       'graphology-layout-forceatlas2/worker: the given graph is not a valid graphology instance.'
     );
 
-  var getEdgeWeight = createEdgeWeightGetter(params.getEdgeWeight).fromEntry;
+  var getEdgeWeight = createEdgeWeightGetter(
+    'getEdgeWeight' in params ? params.getEdgeWeight : 'weight'
+  ).fromEntry;
 
   // Validating settings
   var settings = helpers.assign({}, DEFAULT_SETTINGS, params.settings);

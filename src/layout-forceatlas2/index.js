@@ -44,7 +44,9 @@ function abstractSynchronousLayout(assign, graph, params) {
       'graphology-layout-forceatlas2: you should provide a positive number of iterations.'
     );
 
-  var getEdgeWeight = createEdgeWeightGetter(params.getEdgeWeight).fromEntry;
+  var getEdgeWeight = createEdgeWeightGetter(
+    'getEdgeWeight' in params ? params.getEdgeWeight : 'weight'
+  ).fromEntry;
 
   var outputReducer =
     typeof params.outputReducer === 'function' ? params.outputReducer : null;

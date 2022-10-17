@@ -151,14 +151,16 @@ exports.graphToByteArrays = function (graph, getEdgeWeight) {
     var sj = index[source];
     var tj = index[target];
 
-    // Handling node mass through degree
-    NodeMatrix[sj + 6] += 1;
-    NodeMatrix[tj + 6] += 1;
+    var weight = getEdgeWeight(edge, attr, source, target, sa, ta, u);
+
+    // Incrementing mass to be a node's weighted degree
+    NodeMatrix[sj + 6] += weight;
+    NodeMatrix[tj + 6] += weight;
 
     // Populating byte array
     EdgeMatrix[j] = sj;
     EdgeMatrix[j + 1] = tj;
-    EdgeMatrix[j + 2] = getEdgeWeight(edge, attr, source, target, sa, ta, u);
+    EdgeMatrix[j + 2] = weight;
     j += PPE;
   });
 

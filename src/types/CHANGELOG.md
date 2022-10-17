@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.24.5
+
+- More useful `#.updateNode` & `#.updateEdge` type signature.
+
+## 0.24.4
+
+- Adding missing options from static methods.
+
 ## 0.24.3
 
 - Fixing `#.updateEachNodeAttributes` & `#.updateEachEdgeAttributes` signature.
