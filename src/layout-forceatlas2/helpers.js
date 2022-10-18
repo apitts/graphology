@@ -8,8 +8,8 @@
 /**
  * Constants.
  */
-var PPN = 10;
-var PPE = 3;
+var PPN = 11;
+var PPE = 4;
 
 /**
  * Very simple Object.assign-like function.
@@ -128,44 +128,43 @@ exports.graphToByteArrays = function (graph, getEdgeWeight) {
   // Iterate through nodes
   j = 0;
   graph.forEachNode(function (node, attr) {
-    if(!attr.hidden) {
-      // Node index
-      index[node] = j;
+    // Node index
+    index[node] = j;
 
-      // Populating byte array
-      NodeMatrix[j] = attr.x;
-      NodeMatrix[j + 1] = attr.y;
-      NodeMatrix[j + 2] = 0; // dx
-      NodeMatrix[j + 3] = 0; // dy
-      NodeMatrix[j + 4] = 0; // old_dx
-      NodeMatrix[j + 5] = 0; // old_dy
-      NodeMatrix[j + 6] = 1; // mass
-      NodeMatrix[j + 7] = 1; // convergence
-      NodeMatrix[j + 8] = attr.size || 1;
-      NodeMatrix[j + 9] = attr.fixed ? 1 : 0;
-      j += PPN;
-    }
+    // Populating byte array
+    NodeMatrix[j] = attr.x;
+    NodeMatrix[j + 1] = attr.y;
+    NodeMatrix[j + 2] = 0; // dx
+    NodeMatrix[j + 3] = 0; // dy
+    NodeMatrix[j + 4] = 0; // old_dx
+    NodeMatrix[j + 5] = 0; // old_dy
+    NodeMatrix[j + 6] = 1; // mass
+    NodeMatrix[j + 7] = 1; // convergence
+    NodeMatrix[j + 8] = attr.size || 1;
+    NodeMatrix[j + 9] = attr.fixed ? 1 : 0;
+    NodeMatrix[j + 10] = attr.hidden ? 1 : 0;
+    j += PPN;
   });
 
   // Iterate through edges
   j = 0;
   graph.forEachEdge(function (edge, attr, source, target, sa, ta, u) {
+    var sj = index[source];
+    var tj = index[target];
+
     if(!attr.hidden && !sa.hidden && !ta.hidden) {
-      var sj = index[source];
-      var tj = index[target];
-
       var weight = getEdgeWeight(edge, attr, source, target, sa, ta, u);
-
       // Incrementing mass to be a node's weighted degree
       NodeMatrix[sj + 6] += weight;
       NodeMatrix[tj + 6] += weight;
-
-      // Populating byte array
-      EdgeMatrix[j] = sj;
-      EdgeMatrix[j + 1] = tj;
-      EdgeMatrix[j + 2] = weight;
-      j += PPE;
     }
+
+    // Populating byte array
+    EdgeMatrix[j] = sj;
+    EdgeMatrix[j + 1] = tj;
+    EdgeMatrix[j + 2] = weight;
+    EdgeMatrix[j + 3] = (attr.hidden || sa.hidden || ta.hidden) ? 1 : 0;
+    j += PPE;
   });
 
   return {
@@ -185,12 +184,9 @@ exports.assignLayoutChanges = function (graph, NodeMatrix, outputReducer) {
   var i = 0;
 
   graph.updateEachNodeAttributes(function (node, attr) {
-    if(!attr.hidden) {
-      attr.x = NodeMatrix[i];
-      attr.y = NodeMatrix[i + 1];
-
-      i += PPN;
-    }
+    attr.x = NodeMatrix[i];
+    attr.y = NodeMatrix[i + 1];
+    i += PPN;
     return outputReducer ? outputReducer(node, attr) : attr;
   });
 };
@@ -205,12 +201,10 @@ exports.readGraphPositions = function (graph, NodeMatrix) {
   var i = 0;
 
   graph.forEachNode(function (node, attr) {
-    if(!attr.hidden) {
-      NodeMatrix[i] = attr.x;
-      NodeMatrix[i + 1] = attr.y;
-  
-      i += PPN;
-    }
+    NodeMatrix[i] = attr.x;
+    NodeMatrix[i + 1] = attr.y;
+
+    i += PPN;
   });
 };
 
@@ -223,7 +217,7 @@ exports.readGraphPositions = function (graph, NodeMatrix) {
  * @return {object}                      - Map to node positions.
  */
 exports.collectLayoutChanges = function (graph, NodeMatrix, outputReducer) {
-  var nodes = graph.filterNodes((node, attr) => !attr.hidden),
+  var nodes = graph.nodes(),
     positions = {};
 
   for (var i = 0, j = 0, l = NodeMatrix.length; i < l; i += PPN) {
