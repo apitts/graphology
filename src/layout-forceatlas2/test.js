@@ -54,14 +54,14 @@ describe('graphology-layout-forceatlas2', function () {
         assert.deepStrictEqual(
           Array.from(matrices.nodes),
           [
-            3, 4, 0, 0, 0, 0, 2, 1, 4, 0, 10, 5, 0, 0, 0, 0, 5, 1, 1, 0, 23, -2,
-            0, 0, 0, 0, 4, 1, 1, 0
+            3, 4, 0, 0, 0, 0, 2, 1, 4, 0, 0, 10, 5, 0, 0, 0, 0, 5, 1, 1, 0, 0, 23, -2,
+            0, 0, 0, 0, 4, 1, 1, 0, 0
           ]
         );
 
         assert.deepStrictEqual(
           Array.from(matrices.edges),
-          [0, 10, 1, 10, 20, 3]
+          [0, 11, 1, 0, 11, 22, 3, 0]
         );
 
         matrices = helpers.graphToByteArrays(graph, function () {
@@ -70,7 +70,7 @@ describe('graphology-layout-forceatlas2', function () {
 
         assert.deepStrictEqual(
           Array.from(matrices.edges),
-          [0, 10, 1, 10, 20, 1]
+          [0, 11, 1, 0, 11, 22, 1, 0]
         );
       });
     });
@@ -100,8 +100,8 @@ describe('graphology-layout-forceatlas2', function () {
         var positions = helpers.collectLayoutChanges(
           graph,
           [
-            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 24, -1,
-            0, 0, 0, 0, 2, 1, 1, 0
+            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 0, 24, -1,
+            0, 0, 0, 0, 2, 1, 1, 0, 0
           ]
         );
 
@@ -136,8 +136,8 @@ describe('graphology-layout-forceatlas2', function () {
         var positions = helpers.collectLayoutChanges(
           graph,
           [
-            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 24, -1,
-            0, 0, 0, 0, 2, 1, 1, 0
+            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 0, 24, -1,
+            0, 0, 0, 0, 2, 1, 1, 0, 0
           ],
           function (n, attributes) {
             return Object.assign({}, attributes, {y: n === 'John' ? 1 : 2});
@@ -176,8 +176,8 @@ describe('graphology-layout-forceatlas2', function () {
         helpers.assignLayoutChanges(
           graph,
           [
-            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 24, -1,
-            0, 0, 0, 0, 2, 1, 1, 0
+            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 0, 24, -1,
+            0, 0, 0, 0, 2, 1, 1, 0, 0
           ]
         );
 
@@ -217,8 +217,8 @@ describe('graphology-layout-forceatlas2', function () {
         helpers.assignLayoutChanges(
           graph,
           [
-            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 24, -1,
-            0, 0, 0, 0, 2, 1, 1, 0
+            4, 5, 0, 0, 0, 0, 2, 1, 4, 0, 0, 11, 6, 0, 0, 0, 0, 3, 1, 1, 0, 0, 24, -1,
+            0, 0, 0, 0, 2, 1, 1, 0, 0
           ],
           function (n, attributes) {
             return Object.assign({}, attributes, {y: n === 'John' ? 1 : 2});

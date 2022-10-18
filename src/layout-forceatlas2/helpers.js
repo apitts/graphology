@@ -43,7 +43,7 @@ exports.assign = function (target) {
  */
 exports.validateSettings = function (settings) {
   if ('linLogMode' in settings && typeof settings.linLogMode !== 'boolean')
-    return {message: 'the `linLogMode` setting should be a boolean.'};
+    return { message: 'the `linLogMode` setting should be a boolean.' };
 
   if (
     'outboundAttractionDistribution' in settings &&
@@ -55,7 +55,7 @@ exports.validateSettings = function (settings) {
     };
 
   if ('adjustSizes' in settings && typeof settings.adjustSizes !== 'boolean')
-    return {message: 'the `adjustSizes` setting should be a boolean.'};
+    return { message: 'the `adjustSizes` setting should be a boolean.' };
 
   if (
     'edgeWeightInfluence' in settings &&
@@ -69,31 +69,31 @@ exports.validateSettings = function (settings) {
     'scalingRatio' in settings &&
     !(typeof settings.scalingRatio === 'number' && settings.scalingRatio >= 0)
   )
-    return {message: 'the `scalingRatio` setting should be a number >= 0.'};
+    return { message: 'the `scalingRatio` setting should be a number >= 0.' };
 
   if (
     'strongGravityMode' in settings &&
     typeof settings.strongGravityMode !== 'boolean'
   )
-    return {message: 'the `strongGravityMode` setting should be a boolean.'};
+    return { message: 'the `strongGravityMode` setting should be a boolean.' };
 
   if (
     'gravity' in settings &&
     !(typeof settings.gravity === 'number' && settings.gravity >= 0)
   )
-    return {message: 'the `gravity` setting should be a number >= 0.'};
+    return { message: 'the `gravity` setting should be a number >= 0.' };
 
   if (
     'slowDown' in settings &&
     !(typeof settings.slowDown === 'number' || settings.slowDown >= 0)
   )
-    return {message: 'the `slowDown` setting should be a number >= 0.'};
+    return { message: 'the `slowDown` setting should be a number >= 0.' };
 
   if (
     'barnesHutOptimize' in settings &&
     typeof settings.barnesHutOptimize !== 'boolean'
   )
-    return {message: 'the `barnesHutOptimize` setting should be a boolean.'};
+    return { message: 'the `barnesHutOptimize` setting should be a boolean.' };
 
   if (
     'barnesHutTheta' in settings &&
@@ -102,7 +102,7 @@ exports.validateSettings = function (settings) {
       settings.barnesHutTheta >= 0
     )
   )
-    return {message: 'the `barnesHutTheta` setting should be a number >= 0.'};
+    return { message: 'the `barnesHutTheta` setting should be a number >= 0.' };
 
   return null;
 };
@@ -154,10 +154,12 @@ exports.graphToByteArrays = function (graph, getEdgeWeight) {
 
     if(!attr.hidden && !sa.hidden && !ta.hidden) {
       var weight = getEdgeWeight(edge, attr, source, target, sa, ta, u);
+
       // Incrementing mass to be a node's weighted degree
       NodeMatrix[sj + 6] += weight;
       NodeMatrix[tj + 6] += weight;
     }
+
 
     // Populating byte array
     EdgeMatrix[j] = sj;
@@ -186,7 +188,9 @@ exports.assignLayoutChanges = function (graph, NodeMatrix, outputReducer) {
   graph.updateEachNodeAttributes(function (node, attr) {
     attr.x = NodeMatrix[i];
     attr.y = NodeMatrix[i + 1];
+
     i += PPN;
+
     return outputReducer ? outputReducer(node, attr) : attr;
   });
 };
@@ -253,7 +257,7 @@ exports.createWorker = function createWorker(fn) {
   var xURL = window.URL || window.webkitURL;
   var code = fn.toString();
   var objectUrl = xURL.createObjectURL(
-    new Blob(['(' + code + ').call(this);'], {type: 'text/javascript'})
+    new Blob(['(' + code + ').call(this);'], { type: 'text/javascript' })
   );
   var worker = new Worker(objectUrl);
   xURL.revokeObjectURL(objectUrl);

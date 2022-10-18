@@ -19,10 +19,12 @@ var NODE_MASS = 6;
 var NODE_CONVERGENCE = 7;
 var NODE_SIZE = 8;
 var NODE_FIXED = 9;
+var NODE_HIDDEN = 10;
 
 var EDGE_SOURCE = 0;
 var EDGE_TARGET = 1;
 var EDGE_WEIGHT = 2;
+var EDGE_HIDDEN = 3;
 
 var REGION_NODE = 0;
 var REGION_CENTER_X = 1;
@@ -39,8 +41,8 @@ var SUBDIVISION_ATTEMPTS = 3;
 /**
  * Constants.
  */
-var PPN = 10;
-var PPE = 3;
+var PPN = 11;
+var PPE = 4;
 var PPR = 9;
 
 var MAX_FORCE = 10;
