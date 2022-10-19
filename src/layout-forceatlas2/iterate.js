@@ -75,10 +75,12 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
 
   // Resetting positions & computing max values
   for (n = 0; n < order; n += PPN) {
-    NodeMatrix[n + NODE_OLD_DX] = NodeMatrix[n + NODE_DX];
-    NodeMatrix[n + NODE_OLD_DY] = NodeMatrix[n + NODE_DY];
-    NodeMatrix[n + NODE_DX] = 0;
-    NodeMatrix[n + NODE_DY] = 0;
+    if (NodeMatrix[n + NODE_HIDDEN] !== 1) {
+      NodeMatrix[n + NODE_OLD_DX] = NodeMatrix[n + NODE_DX];
+      NodeMatrix[n + NODE_OLD_DY] = NodeMatrix[n + NODE_DY];
+      NodeMatrix[n + NODE_DX] = 0;
+      NodeMatrix[n + NODE_DY] = 0;
+    }
   }
 
   // If outbound attraction distribution, compensate
@@ -370,130 +372,132 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
     for (n = 0; n < order; n += PPN) {
       // Computing leaf quad nodes iteration
 
-      r = 0; // Starting with root region
-      while (true) {
-        if (RegionMatrix[r + REGION_FIRST_CHILD] >= 0) {
-          // The region has sub-regions
-
-          // We run the Barnes Hut test to see if we are at the right distance
-          distance =
-            Math.pow(
-              NodeMatrix[n + NODE_X] - RegionMatrix[r + REGION_MASS_CENTER_X],
-              2
-            ) +
-            Math.pow(
-              NodeMatrix[n + NODE_Y] - RegionMatrix[r + REGION_MASS_CENTER_Y],
-              2
-            );
-
-          s = RegionMatrix[r + REGION_SIZE];
-
-          if ((4 * s * s) / distance < thetaSquared) {
-            // We treat the region as a single body, and we repulse
-
-            xDist =
-              NodeMatrix[n + NODE_X] - RegionMatrix[r + REGION_MASS_CENTER_X];
-            yDist =
-              NodeMatrix[n + NODE_Y] - RegionMatrix[r + REGION_MASS_CENTER_Y];
-
-            if (adjustSizes === true) {
-              //-- Linear Anti-collision Repulsion
-              if (distance > 0) {
-                factor =
-                  (coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    RegionMatrix[r + REGION_MASS]) /
-                  distance;
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
-              } else if (distance < 0) {
-                factor =
-                  (-coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    RegionMatrix[r + REGION_MASS]) /
-                  Math.sqrt(distance);
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
+      if (NodeMatrix[n + NODE_HIDDEN] !== 1) {
+        r = 0; // Starting with root region
+        while (true) {
+          if (RegionMatrix[r + REGION_FIRST_CHILD] >= 0) {
+            // The region has sub-regions
+  
+            // We run the Barnes Hut test to see if we are at the right distance
+            distance =
+              Math.pow(
+                NodeMatrix[n + NODE_X] - RegionMatrix[r + REGION_MASS_CENTER_X],
+                2
+              ) +
+              Math.pow(
+                NodeMatrix[n + NODE_Y] - RegionMatrix[r + REGION_MASS_CENTER_Y],
+                2
+              );
+  
+            s = RegionMatrix[r + REGION_SIZE];
+  
+            if ((4 * s * s) / distance < thetaSquared) {
+              // We treat the region as a single body, and we repulse
+  
+              xDist =
+                NodeMatrix[n + NODE_X] - RegionMatrix[r + REGION_MASS_CENTER_X];
+              yDist =
+                NodeMatrix[n + NODE_Y] - RegionMatrix[r + REGION_MASS_CENTER_Y];
+  
+              if (adjustSizes === true) {
+                //-- Linear Anti-collision Repulsion
+                if (distance > 0) {
+                  factor =
+                    (coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      RegionMatrix[r + REGION_MASS]) /
+                    distance;
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                } else if (distance < 0) {
+                  factor =
+                    (-coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      RegionMatrix[r + REGION_MASS]) /
+                    Math.sqrt(distance);
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                }
+              } else {
+                //-- Linear Repulsion
+                if (distance > 0) {
+                  factor =
+                    (coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      RegionMatrix[r + REGION_MASS]) /
+                    distance;
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                }
               }
+  
+              // When this is done, we iterate. We have to look at the next sibling.
+              r = RegionMatrix[r + REGION_NEXT_SIBLING];
+              if (r < 0) break; // No next sibling: we have finished the tree
+  
+              continue;
             } else {
-              //-- Linear Repulsion
-              if (distance > 0) {
-                factor =
-                  (coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    RegionMatrix[r + REGION_MASS]) /
-                  distance;
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
+              // The region is too close and we have to look at sub-regions
+              r = RegionMatrix[r + REGION_FIRST_CHILD];
+              continue;
+            }
+          } else {
+            // The region has no sub-region
+            // If there is a node r[0] and it is not n, then repulse
+            rn = RegionMatrix[r + REGION_NODE];
+  
+            if (rn >= 0 && rn !== n) {
+              xDist = NodeMatrix[n + NODE_X] - NodeMatrix[rn + NODE_X];
+              yDist = NodeMatrix[n + NODE_Y] - NodeMatrix[rn + NODE_Y];
+  
+              distance = xDist * xDist + yDist * yDist;
+  
+              if (adjustSizes === true) {
+                //-- Linear Anti-collision Repulsion
+                if (distance > 0) {
+                  factor =
+                    (coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      NodeMatrix[rn + NODE_MASS]) /
+                    distance;
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                } else if (distance < 0) {
+                  factor =
+                    (-coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      NodeMatrix[rn + NODE_MASS]) /
+                    Math.sqrt(distance);
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                }
+              } else {
+                //-- Linear Repulsion
+                if (distance > 0) {
+                  factor =
+                    (coefficient *
+                      NodeMatrix[n + NODE_MASS] *
+                      NodeMatrix[rn + NODE_MASS]) /
+                    distance;
+  
+                  NodeMatrix[n + NODE_DX] += xDist * factor;
+                  NodeMatrix[n + NODE_DY] += yDist * factor;
+                }
               }
             }
-
+  
             // When this is done, we iterate. We have to look at the next sibling.
             r = RegionMatrix[r + REGION_NEXT_SIBLING];
+  
             if (r < 0) break; // No next sibling: we have finished the tree
-
-            continue;
-          } else {
-            // The region is too close and we have to look at sub-regions
-            r = RegionMatrix[r + REGION_FIRST_CHILD];
+  
             continue;
           }
-        } else {
-          // The region has no sub-region
-          // If there is a node r[0] and it is not n, then repulse
-          rn = RegionMatrix[r + REGION_NODE];
-
-          if (rn >= 0 && rn !== n) {
-            xDist = NodeMatrix[n + NODE_X] - NodeMatrix[rn + NODE_X];
-            yDist = NodeMatrix[n + NODE_Y] - NodeMatrix[rn + NODE_Y];
-
-            distance = xDist * xDist + yDist * yDist;
-
-            if (adjustSizes === true) {
-              //-- Linear Anti-collision Repulsion
-              if (distance > 0) {
-                factor =
-                  (coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    NodeMatrix[rn + NODE_MASS]) /
-                  distance;
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
-              } else if (distance < 0) {
-                factor =
-                  (-coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    NodeMatrix[rn + NODE_MASS]) /
-                  Math.sqrt(distance);
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
-              }
-            } else {
-              //-- Linear Repulsion
-              if (distance > 0) {
-                factor =
-                  (coefficient *
-                    NodeMatrix[n + NODE_MASS] *
-                    NodeMatrix[rn + NODE_MASS]) /
-                  distance;
-
-                NodeMatrix[n + NODE_DX] += xDist * factor;
-                NodeMatrix[n + NODE_DY] += yDist * factor;
-              }
-            }
-          }
-
-          // When this is done, we iterate. We have to look at the next sibling.
-          r = RegionMatrix[r + REGION_NEXT_SIBLING];
-
-          if (r < 0) break; // No next sibling: we have finished the tree
-
-          continue;
         }
       }
     }
@@ -502,64 +506,68 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
 
     // Square iteration
     for (n1 = 0; n1 < order; n1 += PPN) {
-      for (n2 = 0; n2 < n1; n2 += PPN) {
-        // Common to both methods
-        xDist = NodeMatrix[n1 + NODE_X] - NodeMatrix[n2 + NODE_X];
-        yDist = NodeMatrix[n1 + NODE_Y] - NodeMatrix[n2 + NODE_Y];
-
-        if (adjustSizes === true) {
-          //-- Anticollision Linear Repulsion
-          distance =
-            Math.sqrt(xDist * xDist + yDist * yDist) -
-            NodeMatrix[n1 + NODE_SIZE] -
-            NodeMatrix[n2 + NODE_SIZE];
-
-          if (distance > 0) {
-            factor =
-              (coefficient *
-                NodeMatrix[n1 + NODE_MASS] *
-                NodeMatrix[n2 + NODE_MASS]) /
-              distance /
-              distance;
-
-            // Updating nodes' dx and dy
-            NodeMatrix[n1 + NODE_DX] += xDist * factor;
-            NodeMatrix[n1 + NODE_DY] += yDist * factor;
-
-            NodeMatrix[n2 + NODE_DX] -= xDist * factor;
-            NodeMatrix[n2 + NODE_DY] -= yDist * factor;
-          } else if (distance < 0) {
-            factor =
-              100 *
-              coefficient *
-              NodeMatrix[n1 + NODE_MASS] *
-              NodeMatrix[n2 + NODE_MASS];
-
-            // Updating nodes' dx and dy
-            NodeMatrix[n1 + NODE_DX] += xDist * factor;
-            NodeMatrix[n1 + NODE_DY] += yDist * factor;
-
-            NodeMatrix[n2 + NODE_DX] -= xDist * factor;
-            NodeMatrix[n2 + NODE_DY] -= yDist * factor;
-          }
-        } else {
-          //-- Linear Repulsion
-          distance = Math.sqrt(xDist * xDist + yDist * yDist);
-
-          if (distance > 0) {
-            factor =
-              (coefficient *
-                NodeMatrix[n1 + NODE_MASS] *
-                NodeMatrix[n2 + NODE_MASS]) /
-              distance /
-              distance;
-
-            // Updating nodes' dx and dy
-            NodeMatrix[n1 + NODE_DX] += xDist * factor;
-            NodeMatrix[n1 + NODE_DY] += yDist * factor;
-
-            NodeMatrix[n2 + NODE_DX] -= xDist * factor;
-            NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+      if (NodeMatrix[n + NODE_HIDDEN] !== 1) {
+        for (n2 = 0; n2 < n1; n2 += PPN) {
+          if (NodeMatrix[n + NODE_HIDDEN] !== 1) {
+            // Common to both methods
+            xDist = NodeMatrix[n1 + NODE_X] - NodeMatrix[n2 + NODE_X];
+            yDist = NodeMatrix[n1 + NODE_Y] - NodeMatrix[n2 + NODE_Y];
+    
+            if (adjustSizes === true) {
+              //-- Anticollision Linear Repulsion
+              distance =
+                Math.sqrt(xDist * xDist + yDist * yDist) -
+                NodeMatrix[n1 + NODE_SIZE] -
+                NodeMatrix[n2 + NODE_SIZE];
+    
+              if (distance > 0) {
+                factor =
+                  (coefficient *
+                    NodeMatrix[n1 + NODE_MASS] *
+                    NodeMatrix[n2 + NODE_MASS]) /
+                  distance /
+                  distance;
+    
+                // Updating nodes' dx and dy
+                NodeMatrix[n1 + NODE_DX] += xDist * factor;
+                NodeMatrix[n1 + NODE_DY] += yDist * factor;
+    
+                NodeMatrix[n2 + NODE_DX] -= xDist * factor;
+                NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+              } else if (distance < 0) {
+                factor =
+                  100 *
+                  coefficient *
+                  NodeMatrix[n1 + NODE_MASS] *
+                  NodeMatrix[n2 + NODE_MASS];
+    
+                // Updating nodes' dx and dy
+                NodeMatrix[n1 + NODE_DX] += xDist * factor;
+                NodeMatrix[n1 + NODE_DY] += yDist * factor;
+    
+                NodeMatrix[n2 + NODE_DX] -= xDist * factor;
+                NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+              }
+            } else {
+              //-- Linear Repulsion
+              distance = Math.sqrt(xDist * xDist + yDist * yDist);
+    
+              if (distance > 0) {
+                factor =
+                  (coefficient *
+                    NodeMatrix[n1 + NODE_MASS] *
+                    NodeMatrix[n2 + NODE_MASS]) /
+                  distance /
+                  distance;
+    
+                // Updating nodes' dx and dy
+                NodeMatrix[n1 + NODE_DX] += xDist * factor;
+                NodeMatrix[n1 + NODE_DY] += yDist * factor;
+    
+                NodeMatrix[n2 + NODE_DX] -= xDist * factor;
+                NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+              }
+            }
           }
         }
       }
@@ -571,25 +579,27 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
   g = options.gravity / options.scalingRatio;
   coefficient = options.scalingRatio;
   for (n = 0; n < order; n += PPN) {
-    factor = 0;
-
-    // Common to both methods
-    xDist = NodeMatrix[n + NODE_X];
-    yDist = NodeMatrix[n + NODE_Y];
-    distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
-
-    if (options.strongGravityMode) {
-      //-- Strong gravity
-      if (distance > 0) factor = coefficient * NodeMatrix[n + NODE_MASS] * g;
-    } else {
-      //-- Linear Anti-collision Repulsion n
-      if (distance > 0)
-        factor = (coefficient * NodeMatrix[n + NODE_MASS] * g) / distance;
+    if (NodeMatrix[n + NODE_HIDDEN] !== 1) {
+      factor = 0;
+  
+      // Common to both methods
+      xDist = NodeMatrix[n + NODE_X];
+      yDist = NodeMatrix[n + NODE_Y];
+      distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
+  
+      if (options.strongGravityMode) {
+        //-- Strong gravity
+        if (distance > 0) factor = coefficient * NodeMatrix[n + NODE_MASS] * g;
+      } else {
+        //-- Linear Anti-collision Repulsion n
+        if (distance > 0)
+          factor = (coefficient * NodeMatrix[n + NODE_MASS] * g) / distance;
+      }
+  
+      // Updating node's dx and dy
+      NodeMatrix[n + NODE_DX] -= xDist * factor;
+      NodeMatrix[n + NODE_DY] -= yDist * factor;
     }
-
-    // Updating node's dx and dy
-    NodeMatrix[n + NODE_DX] -= xDist * factor;
-    NodeMatrix[n + NODE_DY] -= yDist * factor;
   }
 
   // 4) Attraction
@@ -600,93 +610,96 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
   // TODO: simplify distance
   // TODO: coefficient is always used as -c --> optimize?
   for (e = 0; e < size; e += PPE) {
-    n1 = EdgeMatrix[e + EDGE_SOURCE];
-    n2 = EdgeMatrix[e + EDGE_TARGET];
-    w = EdgeMatrix[e + EDGE_WEIGHT];
+    if (EdgeMatrix[e + EDGE_HIDDEN] !== 1) {
+      n1 = EdgeMatrix[e + EDGE_SOURCE];
+      n2 = EdgeMatrix[e + EDGE_TARGET];
+      w = EdgeMatrix[e + EDGE_WEIGHT];
 
-    // Edge weight influence
-    ewc = Math.pow(w, options.edgeWeightInfluence);
+      // Edge weight influence
+      ewc = Math.pow(w, options.edgeWeightInfluence);
 
-    // Common measures
-    xDist = NodeMatrix[n1 + NODE_X] - NodeMatrix[n2 + NODE_X];
-    yDist = NodeMatrix[n1 + NODE_Y] - NodeMatrix[n2 + NODE_Y];
+      // Common measures
+      xDist = NodeMatrix[n1 + NODE_X] - NodeMatrix[n2 + NODE_X];
+      yDist = NodeMatrix[n1 + NODE_Y] - NodeMatrix[n2 + NODE_Y];
 
-    // Applying attraction to nodes
-    if (adjustSizes === true) {
-      distance =
-        Math.sqrt(xDist * xDist + yDist * yDist) -
-        NodeMatrix[n1 + NODE_SIZE] -
-        NodeMatrix[n2 + NODE_SIZE];
+      // Applying attraction to nodes
+      if (adjustSizes === true) {
+        distance =
+          Math.sqrt(xDist * xDist + yDist * yDist) -
+          NodeMatrix[n1 + NODE_SIZE] -
+          NodeMatrix[n2 + NODE_SIZE];
 
-      if (options.linLogMode) {
-        if (options.outboundAttractionDistribution) {
-          //-- LinLog Degree Distributed Anti-collision Attraction
-          if (distance > 0) {
-            factor =
-              (-coefficient * ewc * Math.log(1 + distance)) /
-              distance /
-              NodeMatrix[n1 + NODE_MASS];
+        if (options.linLogMode) {
+          if (options.outboundAttractionDistribution) {
+            //-- LinLog Degree Distributed Anti-collision Attraction
+            if (distance > 0) {
+              factor =
+                (-coefficient * ewc * Math.log(1 + distance)) /
+                distance /
+                NodeMatrix[n1 + NODE_MASS];
+            }
+          } else {
+            //-- LinLog Anti-collision Attraction
+            if (distance > 0) {
+              factor = (-coefficient * ewc * Math.log(1 + distance)) / distance;
+            }
           }
         } else {
-          //-- LinLog Anti-collision Attraction
-          if (distance > 0) {
-            factor = (-coefficient * ewc * Math.log(1 + distance)) / distance;
+          if (options.outboundAttractionDistribution) {
+            //-- Linear Degree Distributed Anti-collision Attraction
+            if (distance > 0) {
+              factor = (-coefficient * ewc) / NodeMatrix[n1 + NODE_MASS];
+            }
+          } else {
+            //-- Linear Anti-collision Attraction
+            if (distance > 0) {
+              factor = -coefficient * ewc;
+            }
           }
         }
       } else {
-        if (options.outboundAttractionDistribution) {
-          //-- Linear Degree Distributed Anti-collision Attraction
-          if (distance > 0) {
-            factor = (-coefficient * ewc) / NodeMatrix[n1 + NODE_MASS];
+        distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
+
+        if (options.linLogMode) {
+          if (options.outboundAttractionDistribution) {
+            //-- LinLog Degree Distributed Attraction
+            if (distance > 0) {
+              factor =
+                (-coefficient * ewc * Math.log(1 + distance)) /
+                distance /
+                NodeMatrix[n1 + NODE_MASS];
+            }
+          } else {
+            //-- LinLog Attraction
+            if (distance > 0)
+              factor = (-coefficient * ewc * Math.log(1 + distance)) / distance;
           }
         } else {
-          //-- Linear Anti-collision Attraction
-          if (distance > 0) {
+          if (options.outboundAttractionDistribution) {
+            //-- Linear Attraction Mass Distributed
+            // NOTE: Distance is set to 1 to override next condition
+            distance = 1;
+            factor = (-coefficient * ewc) / NodeMatrix[n1 + NODE_MASS];
+          } else {
+            //-- Linear Attraction
+            // NOTE: Distance is set to 1 to override next condition
+            distance = 1;
             factor = -coefficient * ewc;
           }
         }
       }
-    } else {
-      distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
 
-      if (options.linLogMode) {
-        if (options.outboundAttractionDistribution) {
-          //-- LinLog Degree Distributed Attraction
-          if (distance > 0) {
-            factor =
-              (-coefficient * ewc * Math.log(1 + distance)) /
-              distance /
-              NodeMatrix[n1 + NODE_MASS];
-          }
-        } else {
-          //-- LinLog Attraction
-          if (distance > 0)
-            factor = (-coefficient * ewc * Math.log(1 + distance)) / distance;
-        }
-      } else {
-        if (options.outboundAttractionDistribution) {
-          //-- Linear Attraction Mass Distributed
-          // NOTE: Distance is set to 1 to override next condition
-          distance = 1;
-          factor = (-coefficient * ewc) / NodeMatrix[n1 + NODE_MASS];
-        } else {
-          //-- Linear Attraction
-          // NOTE: Distance is set to 1 to override next condition
-          distance = 1;
-          factor = -coefficient * ewc;
-        }
-      }
-    }
-
-    // Updating nodes' dx and dy
-    // TODO: if condition or factor = 1?
-    if (distance > 0) {
       // Updating nodes' dx and dy
-      NodeMatrix[n1 + NODE_DX] += xDist * factor;
-      NodeMatrix[n1 + NODE_DY] += yDist * factor;
+      // TODO: if condition or factor = 1?
+      if (distance > 0) {
+        // Updating nodes' dx and dy
+        NodeMatrix[n1 + NODE_DX] += xDist * factor;
+        NodeMatrix[n1 + NODE_DY] += yDist * factor;
 
-      NodeMatrix[n2 + NODE_DX] -= xDist * factor;
-      NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+        NodeMatrix[n2 + NODE_DX] -= xDist * factor;
+        NodeMatrix[n2 + NODE_DY] -= yDist * factor;
+      }
+
     }
   }
 
@@ -697,7 +710,7 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
   // MATH: sqrt and square distances
   if (adjustSizes === true) {
     for (n = 0; n < order; n += PPN) {
-      if (NodeMatrix[n + NODE_FIXED] !== 1) {
+      if (NodeMatrix[n + NODE_FIXED] !== 1 && NodeMatrix[n + NODE_HIDDEN] !== 1) {
         force = Math.sqrt(
           Math.pow(NodeMatrix[n + NODE_DX], 2) +
             Math.pow(NodeMatrix[n + NODE_DY], 2)
@@ -743,7 +756,7 @@ module.exports = function iterate(options, NodeMatrix, EdgeMatrix) {
     }
   } else {
     for (n = 0; n < order; n += PPN) {
-      if (NodeMatrix[n + NODE_FIXED] !== 1) {
+      if (NodeMatrix[n + NODE_FIXED] !== 1 && NodeMatrix[n + NODE_HIDDEN] !== 1) {
         swinging =
           NodeMatrix[n + NODE_MASS] *
           Math.sqrt(
