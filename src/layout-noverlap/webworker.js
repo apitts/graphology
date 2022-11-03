@@ -158,7 +158,7 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
     x1 = NodeMatrix[n1 + NODE_X];
     y1 = NodeMatrix[n1 + NODE_Y];
     s1 = NodeMatrix[n1 + NODE_SIZE];
-    adjacentNodes[i].forEach(function(j) {
+    adjacentNodes[c].forEach(function(j) {
       n2 = j
       x2 = NodeMatrix[n2 + NODE_X];
       y2 = NodeMatrix[n2 + NODE_Y];
