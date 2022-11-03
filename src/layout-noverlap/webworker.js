@@ -166,8 +166,9 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
       xDist = x2 - x1;
       yDist = y2 - y1;
       dist = Math.sqrt(xDist * xDist + yDist * yDist);
-      collision = dist < s1 * ratio + margin + (s2 * ratio + margin);
+      collision = (dist < ((s1 * ratio + margin) + (s2 * ratio + margin)));
       if(collision) {
+        converged = false;
         n2 = (n2 / PPN) | 0;
         if (dist > 0) {
           deltaX[n2] += (xDist / dist) * (1 + s1);
