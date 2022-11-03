@@ -32,9 +32,6 @@ var PPN = 3;
 /**
  * Helpers.
  */
-function hashPair(a, b) {
-  return a + '§' + b;
-}
 
 function jitter() {
   return 0.01 * (0.5 - Math.random());
@@ -56,7 +53,7 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
   var speed = options.speed;
 
   // Generic iteration variables
-  var i, j, x, y, l, size;
+  var i, j, x, y, size, c;
   var converged = true;
 
   var length = NodeMatrix.length;
@@ -93,16 +90,20 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
   yMax = yCenter + (expansion * height) / 2;
 
   // Building grid
-  var grid = new Array(gridSize * gridSize),
-    gridLength = grid.length,
+  var grid = {},
     c;
 
-  for (c = 0; c < gridLength; c++) grid[c] = [];
+  var col, row;
+
+  for(row = 0; row < gridSize; row++) {
+    grid[row] = {};
+    for(col = 0; col < gridSize; col++) {
+      grid[row][col] = [];
+    }
+  }
 
   var nxMin, nxMax, nyMin, nyMax;
   var xMinBox, xMaxBox, yMinBox, yMaxBox;
-
-  var col, row;
 
   for (i = 0; i < length; i += PPN) {
     x = NodeMatrix[i + NODE_X];
@@ -121,71 +122,63 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
 
     for (col = xMinBox; col <= xMaxBox; col++) {
       for (row = yMinBox; row <= yMaxBox; row++) {
-        grid[col * gridSize + row].push(i);
+        grid[row][col].push(i);
       }
     }
   }
 
-  // Computing collisions
-  var cell;
+  var adjacentNodes = {}; //An object that stores the indexes of adjacent nodes (either in same grid box or adjacent grid box) for all nodes
 
-  var collisions = new Set();
+  var subRow, subCol;
 
-  var n1, n2, x1, x2, y1, y2, s1, s2, h;
-
-  var xDist, yDist, dist, collision;
-
-  for (c = 0; c < gridLength; c++) {
-    cell = grid[c];
-
-    for (i = 0, l = cell.length; i < l; i++) {
-      n1 = cell[i];
-
-      x1 = NodeMatrix[n1 + NODE_X];
-      y1 = NodeMatrix[n1 + NODE_Y];
-      s1 = NodeMatrix[n1 + NODE_SIZE];
-
-      for (j = i + 1; j < l; j++) {
-        n2 = cell[j];
-        h = hashPair(n1, n2);
-
-        if (gridLength > 1 && collisions.has(h)) continue;
-
-        if (gridLength > 1) collisions.add(h);
-
-        x2 = NodeMatrix[n2 + NODE_X];
-        y2 = NodeMatrix[n2 + NODE_Y];
-        s2 = NodeMatrix[n2 + NODE_SIZE];
-
-        xDist = x2 - x1;
-        yDist = y2 - y1;
-        dist = Math.sqrt(xDist * xDist + yDist * yDist);
-        collision = dist < s1 * ratio + margin + (s2 * ratio + margin);
-
-        if (collision) {
-          converged = false;
-          console.log("Collision");
-          console.log(x1);
-          console.log(y1);
-          console.log(s1);
-          console.log(x2);
-          console.log(y2);
-          console.log(s2);
-
-          n2 = (n2 / PPN) | 0;
-
-          if (dist > 0) {
-            deltaX[n2] += (xDist / dist) * (1 + s1);
-            deltaY[n2] += (yDist / dist) * (1 + s1);
-          } else {
-            // Nodes are on the exact same spot, we need to jitter a bit
-            console.log("Jitter applied");
-            deltaX[n2] += width * jitter();
-            deltaY[n2] += height * jitter();
+  for(row = 0; row < gridSize; row++) {
+    for(col = 0; col < gridSize; col++) {
+      grid[row][col].forEach(function(i) {
+        if(!adjacentNodes[i]) {
+          adjacentNodes[i] = [];
+        }
+        for(subRow = Math.max(0, row - 1); subRow <= Math.min(row + 1, gridSize - 1); subRow++) {
+          for(subCol = Math.max(0, col - 1); subCol <= Math.min(col + 1, gridSize - 1); subCol++) {
+            grid[subRow][subCol].forEach(function(j) {
+              if(j !== i && adjacentNodes[i].indexOf(j) === -1) {
+                adjacentNodes[i].push(j);
+              }
+            });
           }
         }
-      }
+      });
     }
+  }
+
+  var n1, n2, x1, x2, y1, y2, s1, s2;
+
+  //If two nodes overlap then repulse them
+  for (c=0; c < order; c++) {
+    n1 = c*PPN
+    x1 = NodeMatrix[n1 + NODE_X];
+    y1 = NodeMatrix[n1 + NODE_Y];
+    s1 = NodeMatrix[n1 + NODE_SIZE];
+    adjacentNodes[i].forEach(function(j) {
+      n2 = j
+      x2 = NodeMatrix[n2 + NODE_X];
+      y2 = NodeMatrix[n2 + NODE_Y];
+      s2 = NodeMatrix[n2 + NODE_SIZE];
+      xDist = x2 - x1;
+      yDist = y2 - y1;
+      dist = Math.sqrt(xDist * xDist + yDist * yDist);
+      collision = dist < s1 * ratio + margin + (s2 * ratio + margin);
+      if(collision) {
+        n2 = (n2 / PPN) | 0;
+        if (dist > 0) {
+          deltaX[n2] += (xDist / dist) * (1 + s1);
+          deltaY[n2] += (yDist / dist) * (1 + s1);
+        } else {
+          // Nodes are on the exact same spot, we need to jitter a bit
+          deltaX[n2] += width * jitter();
+          deltaY[n2] += height * jitter();
+        }
+      }
+    });
   }
 
   for (i = 0, j = 0; i < length; i += PPN, j++) {
