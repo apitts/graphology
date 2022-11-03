@@ -153,12 +153,12 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
   var n1, n2, x1, x2, y1, y2, s1, s2;
 
   //If two nodes overlap then repulse them
-  for (c=0; c < order; c++) {
-    n1 = c*PPN
+  for (i = 0; i < length; i += PPN) {
+    n1 = i
     x1 = NodeMatrix[n1 + NODE_X];
     y1 = NodeMatrix[n1 + NODE_Y];
     s1 = NodeMatrix[n1 + NODE_SIZE];
-    adjacentNodes[c].forEach(function(j) {
+    adjacentNodes[n1].forEach(function(j) {
       n2 = j
       x2 = NodeMatrix[n2 + NODE_X];
       y2 = NodeMatrix[n2 + NODE_Y];
