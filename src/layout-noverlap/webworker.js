@@ -164,6 +164,13 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
 
         if (collision) {
           converged = false;
+          console.log("Collision");
+          console.log(x1);
+          console.log(y1);
+          console.log(s1);
+          console.log(x2);
+          console.log(y2);
+          console.log(s2);
 
           n2 = (n2 / PPN) | 0;
 
@@ -172,6 +179,7 @@ moduleShim.exports = function iterate(options, NodeMatrix) {
             deltaY[n2] += (yDist / dist) * (1 + s1);
           } else {
             // Nodes are on the exact same spot, we need to jitter a bit
+            console.log("Jitter applied");
             deltaX[n2] += width * jitter();
             deltaY[n2] += height * jitter();
           }
