@@ -11,11 +11,13 @@
 var NODE_X = 0,
   NODE_Y = 1,
   NODE_SIZE = 2;
+  NODE_FIXED = 3;
+  NODE_HIDDEN = 4;
 
 /**
  * Constants.
  */
-var PPN = 3;
+var PPN = 5;
 
 /**
  * Helpers.
@@ -57,14 +59,16 @@ module.exports = function iterate(options, NodeMatrix) {
   var yMax = -Infinity;
 
   for (i = 0; i < length; i += PPN) {
-    x = NodeMatrix[i + NODE_X];
-    y = NodeMatrix[i + NODE_Y];
-    size = NodeMatrix[i + NODE_SIZE] * ratio + margin;
+    if (NodeMatrix[i + NODE_HIDDEN] !== 1) {
+      x = NodeMatrix[i + NODE_X];
+      y = NodeMatrix[i + NODE_Y];
+      size = NodeMatrix[i + NODE_SIZE] * ratio + margin;
 
-    xMin = Math.min(xMin, x - size);
-    xMax = Math.max(xMax, x + size);
-    yMin = Math.min(yMin, y - size);
-    yMax = Math.max(yMax, y + size);
+      xMin = Math.min(xMin, x - size);
+      xMax = Math.max(xMax, x + size);
+      yMin = Math.min(yMin, y - size);
+      yMax = Math.max(yMax, y + size);
+    }
   }
 
   var width = xMax - xMin;
@@ -94,23 +98,25 @@ module.exports = function iterate(options, NodeMatrix) {
   var xMinBox, xMaxBox, yMinBox, yMaxBox;
 
   for (i = 0; i < length; i += PPN) {
-    x = NodeMatrix[i + NODE_X];
-    y = NodeMatrix[i + NODE_Y];
-    size = NodeMatrix[i + NODE_SIZE] * ratio + margin;
+    if(NodeMatrix[i + NODE_HIDDEN] !== 1) {
+      x = NodeMatrix[i + NODE_X];
+      y = NodeMatrix[i + NODE_Y];
+      size = NodeMatrix[i + NODE_SIZE] * ratio + margin;
 
-    nxMin = x - size;
-    nxMax = x + size;
-    nyMin = y - size;
-    nyMax = y + size;
+      nxMin = x - size;
+      nxMax = x + size;
+      nyMin = y - size;
+      nyMax = y + size;
 
-    xMinBox = Math.floor((gridSize * (nxMin - xMin)) / (xMax - xMin));
-    xMaxBox = Math.floor((gridSize * (nxMax - xMin)) / (xMax - xMin));
-    yMinBox = Math.floor((gridSize * (nyMin - yMin)) / (yMax - yMin));
-    yMaxBox = Math.floor((gridSize * (nyMax - yMin)) / (yMax - yMin));
+      xMinBox = Math.floor((gridSize * (nxMin - xMin)) / (xMax - xMin));
+      xMaxBox = Math.floor((gridSize * (nxMax - xMin)) / (xMax - xMin));
+      yMinBox = Math.floor((gridSize * (nyMin - yMin)) / (yMax - yMin));
+      yMaxBox = Math.floor((gridSize * (nyMax - yMin)) / (yMax - yMin));
 
-    for (col = xMinBox; col <= xMaxBox; col++) {
-      for (row = yMinBox; row <= yMaxBox; row++) {
-        grid[row][col].push(i);
+      for (col = xMinBox; col <= xMaxBox; col++) {
+        for (row = yMinBox; row <= yMaxBox; row++) {
+          grid[row][col].push(i);
+        }
       }
     }
   }
@@ -171,8 +177,10 @@ module.exports = function iterate(options, NodeMatrix) {
   }
 
   for (i = 0, j = 0; i < length; i += PPN, j++) {
-    NodeMatrix[i + NODE_X] += deltaX[j] * 0.1 * speed;
-    NodeMatrix[i + NODE_Y] += deltaY[j] * 0.1 * speed;
+    if (NodeMatrix[i + NODE_FIXED] !== 1) {
+      NodeMatrix[i + NODE_X] += deltaX[j] * 0.1 * speed;
+      NodeMatrix[i + NODE_Y] += deltaY[j] * 0.1 * speed;
+    }
   }
 
   return {converged: converged};

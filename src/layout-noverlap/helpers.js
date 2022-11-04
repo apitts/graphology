@@ -8,7 +8,7 @@
 /**
  * Constants.
  */
-var PPN = 3;
+var PPN = 5;
 
 /**
  * Function used to validate the given settings.
@@ -72,6 +72,8 @@ exports.graphToByteArray = function (graph, reducer) {
     matrix[j] = attr.x;
     matrix[j + 1] = attr.y;
     matrix[j + 2] = attr.size || 1;
+    matrix[j + 3] = attr.fixed ? 1 : 0;
+    matrix[j + 4] = attr.hidden ? 1 : 0;
     j += PPN;
   });
 
