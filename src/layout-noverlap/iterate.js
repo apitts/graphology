@@ -68,6 +68,8 @@ module.exports = function iterate(options, NodeMatrix) {
       xMax = Math.max(xMax, x + size);
       yMin = Math.min(yMin, y - size);
       yMax = Math.max(yMax, y + size);
+    } else {
+      console.log('Hidden');
     }
   }
 
