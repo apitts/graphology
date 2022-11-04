@@ -68,8 +68,6 @@ module.exports = function iterate(options, NodeMatrix) {
       xMax = Math.max(xMax, x + size);
       yMin = Math.min(yMin, y - size);
       yMax = Math.max(yMax, y + size);
-    } else {
-      console.log('Hidden');
     }
   }
 
@@ -150,32 +148,34 @@ module.exports = function iterate(options, NodeMatrix) {
 
   //If two nodes overlap then repulse them
   for (i = 0; i < length; i += PPN) {
-    n1 = i
-    x1 = NodeMatrix[n1 + NODE_X];
-    y1 = NodeMatrix[n1 + NODE_Y];
-    s1 = NodeMatrix[n1 + NODE_SIZE];
-    adjacentNodes[n1].forEach(function(j) {
-      n2 = j
-      x2 = NodeMatrix[n2 + NODE_X];
-      y2 = NodeMatrix[n2 + NODE_Y];
-      s2 = NodeMatrix[n2 + NODE_SIZE];
-      xDist = x2 - x1;
-      yDist = y2 - y1;
-      dist = Math.sqrt(xDist * xDist + yDist * yDist);
-      collision = (dist < ((s1 * ratio + margin) + (s2 * ratio + margin)));
-      if(collision) {
-        converged = false;
-        n2 = (n2 / PPN) | 0;
-        if (dist > 0) {
-          deltaX[n2] += (xDist / dist) * (1 + s1);
-          deltaY[n2] += (yDist / dist) * (1 + s1);
-        } else {
-          // Nodes are on the exact same spot, we need to jitter a bit
-          deltaX[n2] += width * jitter();
-          deltaY[n2] += height * jitter();
+    if (NodeMatrix[i + NODE_HIDDEN] !== 1) {
+      n1 = i
+      x1 = NodeMatrix[n1 + NODE_X];
+      y1 = NodeMatrix[n1 + NODE_Y];
+      s1 = NodeMatrix[n1 + NODE_SIZE];
+      adjacentNodes[n1].forEach(function(j) {
+        n2 = j
+        x2 = NodeMatrix[n2 + NODE_X];
+        y2 = NodeMatrix[n2 + NODE_Y];
+        s2 = NodeMatrix[n2 + NODE_SIZE];
+        xDist = x2 - x1;
+        yDist = y2 - y1;
+        dist = Math.sqrt(xDist * xDist + yDist * yDist);
+        collision = (dist < ((s1 * ratio + margin) + (s2 * ratio + margin)));
+        if(collision) {
+          converged = false;
+          n2 = (n2 / PPN) | 0;
+          if (dist > 0) {
+            deltaX[n2] += (xDist / dist) * (1 + s1);
+            deltaY[n2] += (yDist / dist) * (1 + s1);
+          } else {
+            // Nodes are on the exact same spot, we need to jitter a bit
+            deltaX[n2] += width * jitter();
+            deltaY[n2] += height * jitter();
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   for (i = 0, j = 0; i < length; i += PPN, j++) {
